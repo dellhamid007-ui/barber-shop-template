@@ -6,13 +6,22 @@ import {
 } from 'lucide-react';
 import {
   isSupabaseConfigured, SUPABASE_URL, saveSupabaseConfig, clearSupabaseConfig,
+  checkAdminAuth, loginAdmin, logoutAdmin, updateAdminPasscode,
   fetchBarbers, createBarber, updateBarber, deleteBarber,
   fetchServices, createService, updateService, deleteService,
   fetchAppointments, createAppointment, updateAppointmentStatus, deleteAppointment,
   fetchMessages, markMessageRead, deleteMessage
 } from '../../lib/supabase';
+import { Lock, LogOut, KeyRound } from 'lucide-react';
 
 export default function AdminDashboard({ onReturnToSite }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => checkAdminAuth());
+  const [loginId, setLoginId] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
+  const [newPasscode, setNewPasscode] = useState('');
+
   const [activeTab, setActiveTab] = useState('overview');
   const [dataSource, setDataSource] = useState('local');
 
@@ -84,6 +93,40 @@ export default function AdminDashboard({ onReturnToSite }) {
     } catch (err) {
       console.error('Error refreshing admin data:', err);
     }
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginSubmitting(true);
+    const res = await loginAdmin(loginId, loginPass);
+    setLoginSubmitting(false);
+
+    if (res.success) {
+      setIsAuthenticated(true);
+      showToast('Connexion réussie en tant qu\'administrateur');
+      setLoginId('');
+      setLoginPass('');
+    } else {
+      setLoginError(res.error || 'Connexion échouée');
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    await logoutAdmin();
+    setIsAuthenticated(false);
+    showToast('Déconnexion effectuée');
+  };
+
+  const handleChangePasscode = (e) => {
+    e.preventDefault();
+    if (!newPasscode || newPasscode.length < 4) {
+      showToast('Le mot de passe doit comporter au moins 4 caractères.');
+      return;
+    }
+    updateAdminPasscode(newPasscode);
+    setNewPasscode('');
+    showToast('Nouveau mot de passe administrateur enregistré !');
   };
 
   useEffect(() => {
@@ -335,6 +378,92 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
     return matchesStatus && matchesSearch;
   });
 
+  if (!isAuthenticated) {
+    return (
+      <div className="admin-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {toast && (
+          <div className="toast">
+            <Check size={16} color="#c5a059" />
+            <span>{toast}</span>
+          </div>
+        )}
+        <header className="admin-header">
+          <div className="admin-nav-content">
+            <div className="admin-brand">
+              <Scissors size={24} className="brand-icon" />
+              <div>
+                <h2>L'ATELIER BARBIER</h2>
+                <span className="admin-badge-sub">Espace d'Administration</span>
+              </div>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={onReturnToSite}>
+              <ExternalLink size={14} />
+              <span>Voir le Site Web</span>
+            </button>
+          </div>
+        </header>
+
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="admin-login-card">
+            <div className="login-icon-wrapper">
+              <Lock size={32} color="var(--accent-gold)" />
+            </div>
+            <h2 className="login-title">Accès Administrateur</h2>
+            <p className="login-subtitle">Veuillez vous connecter pour gérer le salon.</p>
+
+            {loginError && (
+              <div className="status-alert warning" style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem' }}>
+                <AlertCircle size={18} />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminLogin}>
+              <div className="form-group">
+                <label className="form-label">Identifiant / Email</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="admin ou admin@barbershop.com"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Mot de passe</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary btn-full" disabled={loginSubmitting} style={{ marginTop: '1.25rem' }}>
+                {loginSubmitting ? 'Vérification...' : 'Se connecter'}
+              </button>
+            </form>
+
+            <div className="demo-credentials-box">
+              <KeyRound size={16} color="var(--accent-gold)" />
+              <div>
+                <strong>Identifiants de démonstration :</strong>
+                <p style={{ margin: '0.2rem 0' }}>Identifiant : <code>admin</code> | Mot de passe : <code>admin123</code></p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  (Prend également en charge vos utilisateurs Supabase Auth)
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-container">
       {/* Toast Notification */}
@@ -374,6 +503,11 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
             <button className="btn btn-secondary btn-sm" onClick={onReturnToSite}>
               <ExternalLink size={14} />
               <span>Voir le Site Web</span>
+            </button>
+
+            <button className="btn btn-secondary btn-sm danger" onClick={handleAdminLogout} title="Déconnexion Admin">
+              <LogOut size={14} />
+              <span>Déconnexion</span>
             </button>
           </div>
         </div>
@@ -887,6 +1021,28 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
                     )}
                   </div>
                 </form>
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.5rem 0' }} />
+
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', marginBottom: '0.2rem' }}>Mot de passe Administrateur</h4>
+                  <p className="setup-desc" style={{ marginBottom: '0.75rem' }}>
+                    Modifiez le mot de passe local d'accès au tableau de bord.
+                  </p>
+                  <form onSubmit={handleChangePasscode} style={{ display: 'flex', gap: '0.75rem' }}>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="Nouveau mot de passe"
+                      value={newPasscode}
+                      onChange={(e) => setNewPasscode(e.target.value)}
+                      required
+                    />
+                    <button type="submit" className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap' }}>
+                      Enregistrer
+                    </button>
+                  </form>
+                </div>
               </div>
 
               <div className="setup-card">
