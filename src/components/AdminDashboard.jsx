@@ -21,6 +21,7 @@ export default function AdminDashboard({ onReturnToSite }) {
   const [loginError, setLoginError] = useState('');
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [newPasscode, setNewPasscode] = useState('');
+  const [showQuickSetup, setShowQuickSetup] = useState(false);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [dataSource, setDataSource] = useState('local');
@@ -423,19 +424,19 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
             )}
 
             <form onSubmit={handleAdminLogin}>
-              {isSupabaseConfigured() && (
-                <div className="form-group">
-                  <label className="form-label">Adresse Email Supabase *</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    placeholder="ex: admin@domaine.com"
-                    value={loginId}
-                    onChange={(e) => setLoginId(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
+              <div className="form-group">
+                <label className="form-label">
+                  {isSupabaseConfigured() ? 'Adresse Email Supabase *' : 'Identifiant / Email'}
+                </label>
+                <input
+                  type={isSupabaseConfigured() ? 'email' : 'text'}
+                  className="form-input"
+                  placeholder={isSupabaseConfigured() ? 'ex: admin@domaine.com' : 'votre email ou identifiant'}
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  required={isSupabaseConfigured()}
+                />
+              </div>
 
               <div className="form-group">
                 <label className="form-label">Mot de passe *</label>
@@ -454,7 +455,7 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
               </button>
             </form>
 
-            {/* Supabase Status Callout */}
+            {/* Supabase Status & Quick Configuration Toggle */}
             <div className="auth-status-info" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               {isSupabaseConfigured() ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4ade80' }}>
@@ -463,12 +464,50 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
                 </div>
               ) : (
                 <div>
-                  <p style={{ marginBottom: '0.5rem' }}>
-                    <strong>Statut Supabase :</strong> Non connecté (Mode Standalone).
+                  <p style={{ marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                    <strong>Statut Supabase :</strong> Non connecté. Pour activer Supabase Auth sur Vercel, vous pouvez soit configurer vos identifiants ci-dessous, soit ajouter vos variables dans Vercel.
                   </p>
-                  <p>
-                    Pour utiliser les comptes d'utilisateurs Supabase Auth, définissez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code> dans votre fichier <code>.env</code>.
-                  </p>
+                  
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm btn-full"
+                    onClick={() => setShowQuickSetup(!showQuickSetup)}
+                    style={{ marginBottom: '0.5rem' }}
+                  >
+                    <Database size={14} color="var(--accent-gold)" />
+                    <span>{showQuickSetup ? 'Masquer la configuration' : '⚙️ Entrer les identifiants Supabase'}</span>
+                  </button>
+
+                  {showQuickSetup && (
+                    <form onSubmit={handleSaveConfig} style={{ marginTop: '0.75rem', background: '#090a0c', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-gold)' }}>
+                      <h4 style={{ fontSize: '0.88rem', marginBottom: '0.75rem', color: 'var(--accent-gold)' }}>Configuration Supabase Instantanée</h4>
+                      <div className="form-group">
+                        <label className="form-label">URL Supabase (VITE_SUPABASE_URL)</label>
+                        <input
+                          type="url"
+                          className="form-input"
+                          placeholder="https://xyzcompany.supabase.co"
+                          value={supabaseUrlInput}
+                          onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Clé Anonyme (VITE_SUPABASE_ANON_KEY)</label>
+                        <input
+                          type="password"
+                          className="form-input"
+                          placeholder="eyJhbGciOiJIUzI1Ni..."
+                          value={supabaseKeyInput}
+                          onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <button type="submit" className="btn btn-primary btn-sm btn-full">
+                        Enregistrer & Connecter
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
             </div>
