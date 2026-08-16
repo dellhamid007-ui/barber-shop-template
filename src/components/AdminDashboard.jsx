@@ -12,7 +12,7 @@ import {
   fetchAppointments, createAppointment, updateAppointmentStatus, deleteAppointment,
   fetchMessages, markMessageRead, deleteMessage
 } from '../../lib/supabase';
-import { Lock, LogOut, KeyRound } from 'lucide-react';
+import { Lock, LogOut } from 'lucide-react';
 
 export default function AdminDashboard({ onReturnToSite }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => checkAdminAuth());
@@ -409,7 +409,11 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
               <Lock size={32} color="var(--accent-gold)" />
             </div>
             <h2 className="login-title">Accès Administrateur</h2>
-            <p className="login-subtitle">Veuillez vous connecter pour gérer le salon.</p>
+            <p className="login-subtitle">
+              {isSupabaseConfigured()
+                ? 'Connectez-vous avec vos identifiants Supabase Auth.'
+                : 'Connectez-vous avec votre mot de passe administrateur.'}
+            </p>
 
             {loginError && (
               <div className="status-alert warning" style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem' }}>
@@ -419,20 +423,22 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
             )}
 
             <form onSubmit={handleAdminLogin}>
-              <div className="form-group">
-                <label className="form-label">Identifiant / Email</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="admin ou admin@barbershop.com"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                  required
-                />
-              </div>
+              {isSupabaseConfigured() && (
+                <div className="form-group">
+                  <label className="form-label">Adresse Email Supabase *</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="ex: admin@domaine.com"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="form-group">
-                <label className="form-label">Mot de passe</label>
+                <label className="form-label">Mot de passe *</label>
                 <input
                   type="password"
                   className="form-input"
@@ -448,15 +454,23 @@ CREATE POLICY "Public messages policy" ON messages FOR ALL USING (true) WITH CHE
               </button>
             </form>
 
-            <div className="demo-credentials-box">
-              <KeyRound size={16} color="var(--accent-gold)" />
-              <div>
-                <strong>Identifiants de démonstration :</strong>
-                <p style={{ margin: '0.2rem 0' }}>Identifiant : <code>admin</code> | Mot de passe : <code>admin123</code></p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  (Prend également en charge vos utilisateurs Supabase Auth)
-                </p>
-              </div>
+            {/* Supabase Status Callout */}
+            <div className="auth-status-info" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              {isSupabaseConfigured() ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4ade80' }}>
+                  <Database size={14} />
+                  <span>Base Supabase Connectée &bull; Authentification Cloud Active</span>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ marginBottom: '0.5rem' }}>
+                    <strong>Statut Supabase :</strong> Non connecté (Mode Standalone).
+                  </p>
+                  <p>
+                    Pour utiliser les comptes d'utilisateurs Supabase Auth, définissez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code> dans votre fichier <code>.env</code>.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
