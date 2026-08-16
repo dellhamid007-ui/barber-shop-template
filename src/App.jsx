@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Scissors, Calendar, MapPin, Phone, Clock, Star, Check, X, Menu, User, ShieldCheck } from 'lucide-react';
+import { Scissors, Calendar, MapPin, Phone, Clock, Star, Check, X, Menu, User, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import AdminDashboard from './components/AdminDashboard';
 import './Admin.css';
 import {
@@ -17,6 +17,8 @@ export default function App() {
   // Dynamic Data from Supabase / Store
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
+  const [showAllServices, setShowAllServices] = useState(false);
+  const [showAllBarbers, setShowAllBarbers] = useState(false);
 
   // Selection & Form State
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -224,7 +226,7 @@ export default function App() {
           </div>
 
           <div className="services-grid">
-            {services.map((s) => (
+            {(showAllServices ? services : services.slice(0, 3)).map((s) => (
               <div key={s.id} className="service-card">
                 <div className="service-info">
                   <h3>{s.name}</h3>
@@ -246,6 +248,18 @@ export default function App() {
               </div>
             ))}
           </div>
+
+          {services.length > 3 && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAllServices(!showAllServices)}
+              >
+                <span>{showAllServices ? 'Voir moins de services' : `Voir tous les services (${services.length})`}</span>
+                {showAllServices ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -258,7 +272,7 @@ export default function App() {
           </div>
 
           <div className="barbers-grid">
-            {barbers.map((b) => (
+            {(showAllBarbers ? barbers : barbers.slice(0, 3)).map((b) => (
               <div key={b.id} className="barber-card">
                 <div className="blank-barber-avatar">
                   <User size={54} strokeWidth={1.5} />
@@ -280,6 +294,18 @@ export default function App() {
               </div>
             ))}
           </div>
+
+          {barbers.length > 3 && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAllBarbers(!showAllBarbers)}
+              >
+                <span>{showAllBarbers ? 'Voir moins' : `Voir toute l'équipe (${barbers.length})`}</span>
+                {showAllBarbers ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
